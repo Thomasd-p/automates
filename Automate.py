@@ -21,6 +21,14 @@ class Automaton:
         return
     
     def determinize():
+        start_state = frozenset(self.initial_states)
+
+        new_states = [start_state]
+        new_transitions = {}
+        new_final_states = []
+
+
+
         return
     
     def is_deterministic():
