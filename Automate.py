@@ -79,8 +79,17 @@ class Automate:
 
         return
     
-    def is_deterministic():
-        return
+    def is_deterministic(self):
+        # verification du nombre d'etats initial
+        if(self.num_initial_states > 1):
+            return False
+        
+        # Verification d'une unique transition pour chaque couple (etat, symbole)
+        for key in self.transitions:
+            if len(self.transitions[key]) > 1 :
+                return False
+        return True
+    
 
     def complete():
         return
