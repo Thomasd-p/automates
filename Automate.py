@@ -16,12 +16,12 @@ class Automate:
                 # etat initiaux
                 initial_line = automate[2].strip().split()
                 self.num_initial_states = int(initial_line[0]) # nombre d'etats initiaux
-                self.initial_states = list(map(int,initial_line[1:])) # liste des etats initiaux
+                self.initial_states = list(initial_line[1:]) # liste des etats initiaux
 
                 # etat finaux
                 final_line = automate[3].strip().split() 
                 self.num_final_states = int(final_line[0]) # nombre d'etats finaux
-                self.final_states = list(map(int,final_line[1:]))# liste des etats finaux
+                self.final_states = list(final_line[1:])# liste des etats finaux
 
                 # initialisation du numbre de transition
                 self.num_transitions = int(automate[4].strip())
