@@ -136,64 +136,61 @@ class Automate:
         return
 
     def determiniser(self):
+        # 1. L'état initial du nouvel automate est l'ensemble de tous les états initiaux
         start_state = frozenset(self.initial_states)
+        if not start_state: # Cas particulier automate vide
+            return Automate()
 
         new_states = [start_state]
         new_transitions = {}
         new_final_states = []
-
         queue = [start_state]
+        alphabet = [chr(ord('a') + i) for i in range(self.num_symbols)]
 
         while queue:
             current_set = queue.pop(0)
             
-            # Si l'un des états d'origine dans ce set est terminal, le nouveau set l'est aussi
+            # Si l'un des états d'origine est final, le nouvel état composé est final
             if any(s in self.final_states for s in current_set):
                 if current_set not in new_final_states:
                     new_final_states.append(current_set)
             
-            # Pour chaque symbole de l'alphabet (0, 1, ..., num_symbols-1)
-            for symbol in range(self.num_symbols):
-                # On cherche tous les états atteignables avec ce symbole depuis le set actuel
+            for symbole in alphabet:
                 next_set = set()
                 for state in current_set:
-                    # On récupère les transitions correspondantes
-                    # (Hypothèse : self.transitions est une liste de triplets (dep, sym, arr))
-                    for dep, sym, arr in self.transitions:
-                        if dep == state and sym == str(symbol): # Adapté selon ton format de fichier
-                            next_set.add(arr)
+                    # On utilise le dictionnaire self.transitions tel que défini dans lire_fichier
+                    if (state, symbole) in self.transitions:
+                        for target in self.transitions[(state, symbole)]:
+                            next_set.add(target)
                 
                 if next_set:
-                    target_set = frozenset(next_set)
-                    # Enregistrer la transition
-                    new_transitions[(current_set, symbol)] = target_set
+                    target_frozenset = frozenset(next_set)
+                    new_transitions[(current_set, symbole)] = target_frozenset
                     
-                    # Si c'est un nouvel état découvert, on l'ajoute à la file
-                    if target_set not in new_states:
-                        new_states.append(target_set)
-                        queue.append(target_set)
+                    if target_frozenset not in new_states:
+                        new_states.append(target_frozenset)
+                        queue.append(target_frozenset)
 
-        # 3. Conversion des frozensets en entiers pour recréer un objet Automaton
-        # (Optionnel : pour garder la structure propre avec des numéros d'états)
+        # 2. Construction du nouvel objet Automate
+        auto_det = Automate()
+        auto_det.num_symbols = self.num_symbols
+        auto_det.num_states = len(new_states)
+        
+        # Mapping pour transformer les frozensets en numéros d'états (0, 1, 2...)
         mapping = {state: i for i, state in enumerate(new_states)}
         
-        final_transitions = []
-        for (src, sym), dest in new_transitions.items():
-            final_transitions.append((mapping[src], str(sym), mapping[dest]))
-            
-        final_initials = [mapping[start_state]] if start_state else []
-        final_finals = [mapping[s] for s in new_final_states]
-
-        return Automaton(
-            self.num_symbols,
-            len(new_states),
-            final_initials,
-            final_finals,
-            len(final_transitions),
-            final_transitions
-        )
-
-        return
+        auto_det.initial_states = [mapping[start_state]]
+        auto_det.num_initial_states = 1
+        auto_det.final_states = [mapping[s] for s in new_final_states]
+        auto_det.num_final_states = len(auto_det.final_states)
+        
+        # Reconstruction du dictionnaire de transitions
+        auto_det.transitions = {}
+        for (src_set, sym), dest_set in new_transitions.items():
+            auto_det.transitions[(mapping[src_set], sym)] = [mapping[dest_set]]
+        
+        auto_det.num_transitions = len(auto_det.transitions)
+        return auto_det
 
     def est_deterministe(self):
         # verification du nombre d'etats initial
@@ -223,3 +220,7 @@ class Automate:
 
     def automate_complementaire(self):
         return
+
+
+
+
