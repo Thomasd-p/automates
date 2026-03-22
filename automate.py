@@ -142,6 +142,57 @@ class Automate:
         new_transitions = {}
         new_final_states = []
 
+        queue = [start_state]
+
+        while queue:
+            current_set = queue.pop(0)
+            
+            # Si l'un des états d'origine dans ce set est terminal, le nouveau set l'est aussi
+            if any(s in self.final_states for s in current_set):
+                if current_set not in new_final_states:
+                    new_final_states.append(current_set)
+            
+            # Pour chaque symbole de l'alphabet (0, 1, ..., num_symbols-1)
+            for symbol in range(self.num_symbols):
+                # On cherche tous les états atteignables avec ce symbole depuis le set actuel
+                next_set = set()
+                for state in current_set:
+                    # On récupère les transitions correspondantes
+                    # (Hypothèse : self.transitions est une liste de triplets (dep, sym, arr))
+                    for dep, sym, arr in self.transitions:
+                        if dep == state and sym == str(symbol): # Adapté selon ton format de fichier
+                            next_set.add(arr)
+                
+                if next_set:
+                    target_set = frozenset(next_set)
+                    # Enregistrer la transition
+                    new_transitions[(current_set, symbol)] = target_set
+                    
+                    # Si c'est un nouvel état découvert, on l'ajoute à la file
+                    if target_set not in new_states:
+                        new_states.append(target_set)
+                        queue.append(target_set)
+
+        # 3. Conversion des frozensets en entiers pour recréer un objet Automaton
+        # (Optionnel : pour garder la structure propre avec des numéros d'états)
+        mapping = {state: i for i, state in enumerate(new_states)}
+        
+        final_transitions = []
+        for (src, sym), dest in new_transitions.items():
+            final_transitions.append((mapping[src], str(sym), mapping[dest]))
+            
+        final_initials = [mapping[start_state]] if start_state else []
+        final_finals = [mapping[s] for s in new_final_states]
+
+        return Automaton(
+            self.num_symbols,
+            len(new_states),
+            final_initials,
+            final_finals,
+            len(final_transitions),
+            final_transitions
+        )
+
         return
 
     def est_deterministe(self):
