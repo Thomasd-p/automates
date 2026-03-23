@@ -221,6 +221,15 @@ class Automate:
     def automate_complementaire(self):
         return
 
+ #Transformation de l'automate en son automate complémentaire
+    def automate_complementaire(self):
+        new_final_states = []
+        for etat in range(self.num_states):
+            if etat not in self.final_states:
+                new_final_states.append(etat)
+        self.final_states = new_final_states
+        self.num_final_states = len(new_final_states)
+        print("Automate est transformé en son complémentaire.")
 
 
 
