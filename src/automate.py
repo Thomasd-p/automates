@@ -1,6 +1,6 @@
 # Creation de la classe Automate
 class Automate:
-
+    
     # definition de la fonction de lecture
     def lire_fichier(self, chemin_fichier):
         try:
@@ -13,12 +13,12 @@ class Automate:
                 # initialisation du nombre d'etats
                 self.num_states = int(automate[1].strip())
 
-                # etats initiaux (Correction : on convertit tout en entiers avec int())
+                # etats initiaux 
                 initial_line = automate[2].strip().split()
                 self.num_initial_states = int(initial_line[0])
                 self.initial_states = [int(x) for x in initial_line[1:]]
 
-                # etats finaux (Correction : on convertit tout en entiers)
+                # etats finaux 
                 final_line = automate[3].strip().split()
                 self.num_final_states = int(final_line[0])
                 self.final_states = [int(x) for x in final_line[1:]]
@@ -26,7 +26,7 @@ class Automate:
                 # initialisation du nombre de transitions
                 self.num_transitions = int(automate[4].strip())
 
-                # transitions (dictionnaire)
+                # transitions 
                 # clé = (état de depart, symbole) = liste d'etats d'arrivée
                 self.transitions = {}
 
@@ -36,15 +36,13 @@ class Automate:
 
                         # on cherche où s'arrête l'etat de depart
                         j = 0
-
-                        # CORRECTION : On indente tout ce bloc à l'intérieur de la boucle 'for'
                         while j < len(line) and line[j].isdigit():
                             j += 1
 
                         # extraction de l'etat de depart
                         debut = int(line[:j])
 
-                        # extraction du symbole de transition (j'ai corrigé la faute de frappe)
+                        # extraction du symbole de transition 
                         symbole = line[j]
 
                         # extraction de l'etat d'arrivée
@@ -62,6 +60,7 @@ class Automate:
 
         except FileNotFoundError:
             print(f"Erreur : le fichier '{chemin_fichier}' n'existe pas.")
+
 
     def afficher(self):
         # genere l'alphabet
@@ -204,10 +203,34 @@ class Automate:
         return True
 
     def completer(self):
-        return
+
+        if self.est_complet():
+            print("l'automate est deja complet")
+            return
+
+        # Generation de l'alphabet
+        alphabet = [chr(ord('a')+i) for i in range(self.num_symbols)]
+        new_etat = self.num_states 
+        self.num_states += 1
+
+        
+        for i in range(new_etat) :
+            for j in alphabet :
+               if (i,j) not in self.transitions :
+                   self.transitions[(i,j)] = [new_etat]
+        
+        for j in alphabet :
+            self.transitions[(new_etat,j)] = [new_etat]
+
+        print(f"l'etat {new_etat} represente l'etat final")
 
     def est_complet(self):
-        return
+        alphabet = [chr(ord('a')+i) for i in range(self.num_symbols)]
+        for i in range(self.num_states):
+            for j in alphabet :
+                if (i,j) not in self.transitions:
+                    return False
+        return True
 
     def minimiser(self):
         return
@@ -218,10 +241,7 @@ class Automate:
     def reconnaitre_mots(self):
         return
 
-    def automate_complementaire(self):
-        return
-
- #Transformation de l'automate en son automate complémentaire
+    #Transformation de l'automate en son automate complémentaire
     def automate_complementaire(self):
         new_final_states = []
         for etat in range(self.num_states):
