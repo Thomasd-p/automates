@@ -207,13 +207,16 @@ class Automate:
         if self.est_complet():
             print("l'automate est deja complet")
             return
+        if self.automate_epsilon():
+            print("l'automate ne peut pas etre completer")
+            return
 
         # Generation de l'alphabet
         alphabet = [chr(ord('a')+i) for i in range(self.num_symbols)]
         new_etat = self.num_states 
         self.num_states += 1
 
-        
+        # si le couple (i,j) n'existe p
         for i in range(new_etat) :
             for j in alphabet :
                if (i,j) not in self.transitions :
@@ -223,7 +226,7 @@ class Automate:
             self.transitions[(new_etat,j)] = [new_etat]
 
         print(f"l'etat {new_etat} represente l'etat final")
-
+        
     def est_complet(self):
         alphabet = [chr(ord('a')+i) for i in range(self.num_symbols)]
         for i in range(self.num_states):
@@ -250,6 +253,14 @@ class Automate:
         self.final_states = new_final_states
         self.num_final_states = len(new_final_states)
         print("Automate est transformé en son complémentaire.")
+
+        
+    def automate_epsilon(self):
+        for (i,j) in self.transitions :
+            if j == "£":
+                return True
+        return False
+
 
 
 
