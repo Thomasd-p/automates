@@ -1,6 +1,6 @@
 # Creation de la classe Automate
 class Automate:
-    
+
     # definition de la fonction de lecture
     def lire_fichier(self, chemin_fichier):
         try:
@@ -8,72 +8,71 @@ class Automate:
                 automate = fichier.readlines()
 
                 # initialisation du nombre de symboles de l'alphabet
-                self.num_symbols = int(automate[0].strip())
+                self.num_symboles = int(automate[0].strip())
 
                 # initialisation du nombre d'etats
-                self.num_states = int(automate[1].strip())
+                self.num_etats = int(automate[1].strip())
 
-                # etats initiaux 
-                initial_line = automate[2].strip().split()
-                self.num_initial_states = int(initial_line[0])
-                self.initial_states = [int(x) for x in initial_line[1:]]
+                # etats initiaux
+                ligne_initiale = automate[2].strip().split()
+                self.num_etats_initiaux = int(ligne_initiale[0])
+                self.etats_initiaux = [int(x) for x in ligne_initiale[1:]]
 
-                # etats finaux 
-                final_line = automate[3].strip().split()
-                self.num_final_states = int(final_line[0])
-                self.final_states = [int(x) for x in final_line[1:]]
+                # etats finaux
+                ligne_finale = automate[3].strip().split()
+                self.num_etats_finaux = int(ligne_finale[0])
+                self.etats_finaux = [int(x) for x in ligne_finale[1:]]
 
                 # initialisation du nombre de transitions
                 self.num_transitions = int(automate[4].strip())
 
-                # transitions 
+                # transitions
                 # clé = (état de depart, symbole) = liste d'etats d'arrivée
                 self.transitions = {}
 
                 if self.num_transitions != 0:
                     for i in range(5, 5 + self.num_transitions):
-                        line = automate[i].strip()
+                        ligne = automate[i].strip()
 
                         # on cherche où s'arrête l'etat de depart
                         j = 0
-                        while j < len(line) and line[j].isdigit():
+                        while j < len(ligne) and ligne[j].isdigit():
                             j += 1
 
                         # extraction de l'etat de depart
-                        debut = int(line[:j])
+                        debut = int(ligne[:j])
 
-                        # extraction du symbole de transition 
-                        symbole = line[j]
+                        # extraction du symbole de transition
+                        symbole = ligne[j]
 
                         # extraction de l'etat d'arrivée
-                        fin = int(line[j + 1:])
+                        fin = int(ligne[j + 1:])
 
                         # creation de la clé (etat de depart, symbole)
-                        key = (debut, symbole)
+                        cle = (debut, symbole)
 
                         # si la clé n'existe pas, on initialise
-                        if key not in self.transitions:
-                            self.transitions[key] = []
+                        if cle not in self.transitions:
+                            self.transitions[cle] = []
 
                         # ajout de l'etat d'arrivée à la liste des transitions
-                        self.transitions[key].append(fin)
+                        self.transitions[cle].append(fin)
 
         except FileNotFoundError:
             print(f"Erreur : le fichier '{chemin_fichier}' n'existe pas.")
 
-
     def afficher(self):
         # genere l'alphabet
-        alphabet = [chr(ord('a') + i) for i in range(self.num_symbols)]
+        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
 
         # Préparation des données de chaque ligne
         lignes = []
-        for etat in range(self.num_states):
+        for etat in range(self.num_etats):
             # precise si c'est un etat entree ou sortie
             marqueur = ""
-            if etat in self.initial_states:
+            if etat in self.etats_initiaux:
                 marqueur += "E "
-            if etat in self.final_states:
+            if etat in self.etats_finaux:
                 marqueur += "S"
 
             # Récupération des transitions pour cet état
@@ -104,8 +103,8 @@ class Automate:
 
         # Affichage final
         print("\n======== AUTOMATE ===========")
-        print(f"États initiaux : {self.initial_states}")
-        print(f"États terminaux : {self.final_states}\n")
+        print(f"États initiaux : {self.etats_initiaux}")
+        print(f"États terminaux : {self.etats_finaux}\n")
 
         # Affichage de l'en-tête du tableau
         # :<5 pour aligner à gauche sur 5 espaces"
@@ -136,131 +135,289 @@ class Automate:
 
     def determiniser(self):
         # 1. L'état initial du nouvel automate est l'ensemble de tous les états initiaux
-        start_state = frozenset(self.initial_states)
-        if not start_state: # Cas particulier automate vide
+        etat_depart = frozenset(self.etats_initiaux)
+        if not etat_depart:  # Cas particulier automate vide
             return Automate()
 
-        new_states = [start_state]
-        new_transitions = {}
-        new_final_states = []
-        queue = [start_state]
-        alphabet = [chr(ord('a') + i) for i in range(self.num_symbols)]
+        nouveaux_etats = [etat_depart]
+        nouvelles_transitions = {}
+        nouveaux_etats_finaux = []
+        file = [etat_depart]
+        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
 
-        while queue:
-            current_set = queue.pop(0)
-            
+        while file:
+            ensemble_courant = file.pop(0)
+
             # Si l'un des états d'origine est final, le nouvel état composé est final
-            if any(s in self.final_states for s in current_set):
-                if current_set not in new_final_states:
-                    new_final_states.append(current_set)
-            
+            if any(s in self.etats_finaux for s in ensemble_courant):
+                if ensemble_courant not in nouveaux_etats_finaux:
+                    nouveaux_etats_finaux.append(ensemble_courant)
+
             for symbole in alphabet:
-                next_set = set()
-                for state in current_set:
+                ensemble_suivant = set()
+                for etat in ensemble_courant:
                     # On utilise le dictionnaire self.transitions tel que défini dans lire_fichier
-                    if (state, symbole) in self.transitions:
-                        for target in self.transitions[(state, symbole)]:
-                            next_set.add(target)
-                
-                if next_set:
-                    target_frozenset = frozenset(next_set)
-                    new_transitions[(current_set, symbole)] = target_frozenset
-                    
-                    if target_frozenset not in new_states:
-                        new_states.append(target_frozenset)
-                        queue.append(target_frozenset)
+                    if (etat, symbole) in self.transitions:
+                        for cible in self.transitions[(etat, symbole)]:
+                            ensemble_suivant.add(cible)
+
+                if ensemble_suivant:
+                    cible_frozenset = frozenset(ensemble_suivant)
+                    nouvelles_transitions[(ensemble_courant, symbole)] = cible_frozenset
+
+                    if cible_frozenset not in nouveaux_etats:
+                        nouveaux_etats.append(cible_frozenset)
+                        file.append(cible_frozenset)
 
         # 2. Construction du nouvel objet Automate
         auto_det = Automate()
-        auto_det.num_symbols = self.num_symbols
-        auto_det.num_states = len(new_states)
-        
+        auto_det.num_symboles = self.num_symboles
+        auto_det.num_etats = len(nouveaux_etats)
+
         # Mapping pour transformer les frozensets en numéros d'états (0, 1, 2...)
-        mapping = {state: i for i, state in enumerate(new_states)}
-        
-        auto_det.initial_states = [mapping[start_state]]
-        auto_det.num_initial_states = 1
-        auto_det.final_states = [mapping[s] for s in new_final_states]
-        auto_det.num_final_states = len(auto_det.final_states)
-        
+        correspondance = {etat: i for i, etat in enumerate(nouveaux_etats)}
+
+        auto_det.etats_initiaux = [correspondance[etat_depart]]
+        auto_det.num_etats_initiaux = 1
+        auto_det.etats_finaux = [correspondance[s] for s in nouveaux_etats_finaux]
+        auto_det.num_etats_finaux = len(auto_det.etats_finaux)
+
         # Reconstruction du dictionnaire de transitions
         auto_det.transitions = {}
-        for (src_set, sym), dest_set in new_transitions.items():
-            auto_det.transitions[(mapping[src_set], sym)] = [mapping[dest_set]]
-        
+        for (ens_source, sym), ens_dest in nouvelles_transitions.items():
+            auto_det.transitions[(correspondance[ens_source], sym)] = [correspondance[ens_dest]]
+
         auto_det.num_transitions = len(auto_det.transitions)
         return auto_det
 
     def est_deterministe(self):
         # verification du nombre d'etats initial
-        if (self.num_initial_states > 1):
+        if (self.num_etats_initiaux > 1):
             return False
 
         # Verification d'une unique transition pour chaque couple (etat, symbole)
-        for key in self.transitions:
-            if len(self.transitions[key]) > 1:
+        for cle in self.transitions:
+            if len(self.transitions[cle]) > 1:
                 return False
         return True
 
     def completer(self):
 
         if self.est_complet():
-            print("l'automate est deja complet")
+            print("l'automate est déja complet")
             return
         if self.automate_epsilon():
-            print("l'automate ne peut pas etre completer")
+            print("l'automate ne peut pas être completé")
             return
 
         # Generation de l'alphabet
-        alphabet = [chr(ord('a')+i) for i in range(self.num_symbols)]
-        new_etat = self.num_states 
-        self.num_states += 1
+        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
+        nouvel_etat = self.num_etats
+        self.num_etats += 1
 
-        # si le couple (i,j) n'existe p
-        for i in range(new_etat) :
-            for j in alphabet :
-               if (i,j) not in self.transitions :
-                   self.transitions[(i,j)] = [new_etat]
-        
-        for j in alphabet :
-            self.transitions[(new_etat,j)] = [new_etat]
 
-        print(f"l'etat {new_etat} represente l'etat final")
-        
+        # si le couple (i,j) n'existe pas
+        for i in range(nouvel_etat):
+            for j in alphabet:
+                if (i, j) not in self.transitions:
+                    self.transitions[(i, j)] = [nouvel_etat]
+
+        for j in alphabet:
+            self.transitions[(nouvel_etat, j)] = [nouvel_etat]
+
+        print(f"l'etat {nouvel_etat} represente l'etat final")
+
     def est_complet(self):
-        alphabet = [chr(ord('a')+i) for i in range(self.num_symbols)]
-        for i in range(self.num_states):
-            for j in alphabet :
-                if (i,j) not in self.transitions:
+        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
+        for i in range(self.num_etats):
+            for j in alphabet:
+                if (i, j) not in self.transitions:
                     return False
         return True
 
-    def minimiser(self):
-        return
+    def minimiser(self, test_auto_min=False):
+        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
+
+        etats_terminaux = set(self.etats_finaux)
+        tous_les_etats = set(range(self.num_etats))
+        etats_non_terminaux = tous_les_etats - etats_terminaux
+
+        partitions = []
+        if len(etats_non_terminaux) > 0:
+            partitions.append(etats_non_terminaux)
+        if len(etats_terminaux) > 0:
+            partitions.append(etats_terminaux)
+
+        numero_etape = 0
+        if not test_auto_min:
+            print(f"P{numero_etape} = {partitions}")
+
+        partition_a_change = True
+
+        while partition_a_change:
+            nouvelles_partitions = []
+            partition_a_change = False
+
+            for groupe in partitions:
+                # On classe les états de ce groupe selon leur comportement
+                groupes_separes = {}
+
+                for etat in groupe:
+
+                    comportement = []  # Le comportement est la liste des groupes de destination pour chaque lettre
+
+                    for symbole in alphabet:
+                        if (etat, symbole) in self.transitions and len(self.transitions[(etat, symbole)]) > 0:
+                            etat_arrivee = self.transitions[(etat, symbole)][0]
+
+                            index_du_groupe_arrivee = -1
+                            for index, p in enumerate(partitions):
+                                if etat_arrivee in p:
+                                    index_du_groupe_arrivee = index
+                                    break
+
+                            comportement.append(index_du_groupe_arrivee)
+                        else:
+                            # S'il manque une transition (même si ça ne devrait pas arriver sur un automate complet)
+                            comportement.append(-1)
+
+                    # On regroupe les états qui ont exactement le même comportement
+                    comportement = tuple(comportement)
+                    if comportement not in groupes_separes:
+                        groupes_separes[comportement] = set()
+                    groupes_separes[comportement].add(etat)
+
+                # Si on a créé plus d'un sous-groupe, c'est qu'on a dû diviser notre groupe de départ
+                if len(groupes_separes) > 1:
+                    partition_a_change = True
+
+                # On ajoute tous les groupes à la liste du prochain tour
+                for sous_groupe in groupes_separes.values():
+                    nouvelles_partitions.append(sous_groupe)
+
+            # Mise à jour pour le tour de boucle suivant
+            if partition_a_change:
+                partitions = nouvelles_partitions
+                numero_etape += 1
+                if not test_auto_min:
+                    print(f"P{numero_etape} = {partitions}")
+
+
+        if test_auto_min: # teste la minimalité
+            return len(partitions) == self.num_etats
+
+        # Creation de l'automate :
+        print("-" * 30)
+        if numero_etape == 0:
+            print("L'automate d'origine est déjà minimal !")
+            return self
+
+        print(f"Automate minimal trouvé en {numero_etape} étapes.")
+
+        auto_min = Automate()
+        auto_min.num_symboles = self.num_symboles
+        auto_min.num_etats = len(partitions)
+
+        # On crée un annuaire pour savoir quel ancien état devient quel nouveau numéro
+        correspondance = {}
+        for indice_nouveau_etat, groupe in enumerate(partitions):
+            for ancien_etat in groupe:
+                correspondance[ancien_etat] = indice_nouveau_etat
+
+        # Nouveaux états initiaux
+        nouveaux_initiaux = set()
+        for etat in self.etats_initiaux:
+            nouveau_numero = correspondance[etat]
+            nouveaux_initiaux.add(nouveau_numero)
+        auto_min.etats_initiaux = list(nouveaux_initiaux)
+        auto_min.num_etats_initiaux = len(auto_min.etats_initiaux)
+
+        # Nouveaux états finaux
+        nouveaux_finaux = set()
+        for etat in self.etats_finaux:
+            nouveau_numero = correspondance[etat]
+            nouveaux_finaux.add(nouveau_numero)
+        auto_min.etats_finaux = list(nouveaux_finaux)
+        auto_min.num_etats_finaux = len(auto_min.etats_finaux)
+
+        # Nouvelles transitions
+        auto_min.transitions = {}
+        for indice_nouveau_etat, groupe in enumerate(partitions):
+            # Tous les états du groupe ont le même comportement, on en prend un au hasard
+            etat_representant = list(groupe)[0]
+
+            for symbole in alphabet:
+                if (etat_representant, symbole) in self.transitions and len(
+                        self.transitions[(etat_representant, symbole)]) > 0:
+                    ancien_arrivee = self.transitions[(etat_representant, symbole)][0]
+                    nouveau_arrivee = correspondance[ancien_arrivee]
+
+                    auto_min.transitions[(indice_nouveau_etat, symbole)] = [nouveau_arrivee]
+
+        auto_min.num_transitions = len(auto_min.transitions)
+        return auto_min
 
     def est_minimal(self):
-        return
+        # Un automate doit être déterministe et complet pour que ce test soit valable
+        if not self.est_deterministe() or not self.est_complet():
+            return False
 
-    def reconnaitre_mots(self):
-        return
+        # On délègue le travail à la fonction minimiser en mode silencieux
+        return self.minimiser(test_auto_min=True)
 
-    #Transformation de l'automate en son automate complémentaire
+    def reconnaitre_mot(self, mot):
+        # Au départ, on initialise les états actifs avec le ou les états initiaux de l'automate
+        etats_courants = set(self.etats_initiaux)
+
+        # On parcourt le mot séquence par séquence (lettre par lettre)
+        # On ne mémorise pas la chaîne entière, on avance d'une étape à chaque caractère lu
+        for lettre in mot:
+
+            # À chaque nouvelle lettre, on crée un ensemble vide
+            # On réinitialise la mémoire temporaire pour ne stocker que les destinations de cette étape précise
+            prochains_etats = set()
+
+            # On examine chaque état dans lequel on se trouve à cet instant précis
+            for etat in etats_courants:
+
+                # On vérifie si la fonction de transition définit un chemin pour cette lettre depuis cet état
+                if (etat, lettre) in self.transitions:
+
+                    # Si la transition existe, on parcourt tous les états d'arrivée possibles
+                    for etat_arrivee in self.transitions[(etat, lettre)]:
+                        # On ajoute ces états cibles dans l'ensemble temporaire
+                        # L'utilisation d'un ensemble (set) garantit qu'on ne stocke pas de doublons
+                        prochains_etats.add(etat_arrivee)
+
+            # La lecture de la lettre est terminée : on remplace les états précédents par ces nouveaux états atteints
+            etats_courants = prochains_etats
+
+            # Si l'ensemble des états courants est vide, c'est qu'aucune transition n'était possible
+            # On se trouve dans un cul-de-sac
+            if len(etats_courants) == 0:
+                return False  # On rejette le mot immédiatement
+
+        # La lecture complète du mot est terminée. On examine l'ensemble des états atteints
+        for etat in etats_courants:
+            # Si au moins un de ces états est un état terminal
+            if etat in self.etats_finaux:
+                return True  # Le mot est officiellement reconnu par l'automate
+
+        # Si l'on a terminé la lecture mais qu'on ne se trouve sur aucun état terminal
+        return False  # Le mot n'appartient pas au langage, on le rejette
+
+    # Transformation de l'automate en son automate complémentaire
     def automate_complementaire(self):
-        new_final_states = []
-        for etat in range(self.num_states):
-            if etat not in self.final_states:
-                new_final_states.append(etat)
-        self.final_states = new_final_states
-        self.num_final_states = len(new_final_states)
+        nouveaux_etats_finaux = []
+        for etat in range(self.num_etats):
+            if etat not in self.etats_finaux:
+                nouveaux_etats_finaux.append(etat)
+        self.etats_finaux = nouveaux_etats_finaux
+        self.num_etats_finaux = len(nouveaux_etats_finaux)
         print("Automate est transformé en son complémentaire.")
 
-        
     def automate_epsilon(self):
-        for (i,j) in self.transitions:
+        for (i, j) in self.transitions:
             if j == "£":
                 return True
         return False
-
-
-
-
