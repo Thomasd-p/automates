@@ -196,20 +196,25 @@ class Automate:
         print(f"Déterminisation terminée : {auto_det.num_etats} états créés.")
         return auto_det
 
-    def est_complet(self):
-        # On récupère l'alphabet réel (a, b...) en ignorant epsilon
-        alphabet_reel = set(sym for (_, sym) in self.transitions.keys() if sym != "£")
-        
-        if not alphabet_reel:
-            return True # Automate vide ou uniquement epsilon
+    def est_complet(self, verbose=True):
+        # Alphabet de 'a' jusqu'à 'num_symboles'
+        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
+        raisons = []
+        complet = True
 
         for i in range(self.num_etats):
-            for sym in alphabet_reel:
-                # Si un état n'a pas de transition pour une des lettres de l'alphabet
+            for sym in alphabet:
                 if (i, sym) not in self.transitions or not self.transitions[(i, sym)]:
-                    return False
-        return True
+                    raisons.append(f"- État {i} n'a pas de transition pour '{sym}'")
+                    complet = False
 
+        if not complet and verbose:
+            print("\nL'automate n'est PAS COMPLET :")
+            for r in raisons:
+                print(r)
+        
+        return complet
+    
     def completer(self):
         if self.est_complet():
             print("L'automate est déjà complet.")
