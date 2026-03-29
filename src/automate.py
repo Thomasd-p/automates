@@ -200,47 +200,67 @@ class Automate:
                 self.transitions[(nouvel_etat, j)] = [nouvel_etat]
             print(f"État poubelle {nouvel_etat} ajouté.")
 
-    def minimiser(self):
-        if not self.est_deterministe(): self = self.determiniser()
-        if not self.est_complet(): self.completer()
-        
+    def minimiser(self, test_auto_min=False):
+        # On définit l'alphabet réel en excluant epsilon et en se basant sur num_symboles
+        # Si num_symboles est 2, on ne prend que 'a' et 'b'
         alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
-        finaux = set(self.etats_finaux)
-        non_finaux = set(range(self.num_etats)) - finaux
-        
-        P = [non_finaux, finaux] if non_finaux else [finaux]
-        
-        while True:
-            new_P = []
-            for groupe in P:
-                subgroups = {}
-                for etat in groupe:
-                    key = []
-                    for sym in alphabet:
-                        dest = self.transitions[(etat, sym)][0]
-                        idx = next((i for i, g in enumerate(P) if dest in g), -1)
-                        key.append(idx)
-                    k = tuple(key)
-                    if k not in subgroups: subgroups[k] = set()
-                    subgroups[k].add(etat)
-                new_P.extend(subgroups.values())
-            
-            if len(new_P) == len(P): break
-            P = new_P
 
+        etats_terminaux = set(self.etats_finaux)
+        tous_les_etats = set(range(self.num_etats))
+        etats_non_terminaux = tous_les_etats - etats_terminaux
+
+        partitions = []
+        if etats_non_terminaux: partitions.append(etats_non_terminaux)
+        if etats_terminaux: partitions.append(etats_terminaux)
+
+        while True:
+            nouvelles_partitions = []
+            for groupe in partitions:
+                groupes_separes = {}
+                for etat in groupe:
+                    comportement = []
+                    for symbole in alphabet:
+                        # On vérifie si la transition existe pour éviter le KeyError
+                        if (etat, symbole) in self.transitions and self.transitions[(etat, symbole)]:
+                            etat_arrivee = self.transitions[(etat, symbole)][0]
+                            # On trouve l'index du groupe de l'état d'arrivée
+                            index_groupe = next((i for i, g in enumerate(partitions) if etat_arrivee in g), -1)
+                            comportement.append(index_groupe)
+                        else:
+                            comportement.append(-1)
+                    
+                    c_tuple = tuple(comportement)
+                    if c_tuple not in groupes_separes:
+                        groupes_separes[c_tuple] = set()
+                    groupes_separes[c_tuple].add(etat)
+                
+                nouvelles_partitions.extend(groupes_separes.values())
+
+            if len(nouvelles_partitions) == len(partitions):
+                break
+            partitions = nouvelles_partitions
+
+        if test_auto_min: return len(partitions) == self.num_etats
+
+        # Reconstruction de l'automate minimal
         auto_min = Automate()
         auto_min.num_symboles = self.num_symboles
-        auto_min.num_etats = len(P)
-        mapping = {e: i for i, g in enumerate(P) for e in g}
+        auto_min.num_etats = len(partitions)
         
-        auto_min.etats_initiaux = list(set(mapping[e] for e in self.etats_initiaux))
-        auto_min.etats_finaux = list(set(mapping[e] for e in self.etats_finaux))
+        correspondance = {etat: i for i, groupe in enumerate(partitions) for etat in groupe}
+
+        auto_min.etats_initiaux = list(set(correspondance[e] for e in self.etats_initiaux))
+        auto_min.num_etats_initiaux = len(auto_min.etats_initiaux)
+        auto_min.etats_finaux = list(set(correspondance[e] for e in self.etats_finaux))
+        auto_min.num_etats_finaux = len(auto_min.etats_finaux)
+
+        for i, groupe in enumerate(partitions):
+            representant = list(groupe)[0]
+            for symbole in alphabet:
+                if (representant, symbole) in self.transitions:
+                    dest = self.transitions[(representant, symbole)][0]
+                    auto_min.transitions[(i, symbole)] = [correspondance[dest]]
         
-        for i, g in enumerate(P):
-            rep = list(g)[0]
-            for sym in alphabet:
-                dest = self.transitions[(rep, sym)][0]
-                auto_min.transitions[(i, sym)] = [mapping[dest]]
         return auto_min
 
     def reconnaitre_mot(self, mot):
