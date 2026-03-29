@@ -13,7 +13,7 @@ class Automate:
 
     def lire_fichier(self, chemin_fichier):
         try:
-            # Gestion flexible du chemin (racine ou dossier tests)
+           
             if not os.path.exists(chemin_fichier) and os.path.exists(f"tests/{chemin_fichier}"):
                 chemin_fichier = f"tests/{chemin_fichier}"
 
@@ -114,7 +114,7 @@ class Automate:
 
     
     def afficher_composition(self, mapping):
-        """Affiche la correspondance entre les états composés et les nouveaux indices (Consigne Image)."""
+        """Affiche la correspondance entre les états composés et les nouveaux indices."""
         print("\nTable de correspondance des états composés (AF -> AFDC) :")
         for compose, index in mapping.items():
             # On trie les anciens états et on les sépare par un point
@@ -193,7 +193,7 @@ class Automate:
         for (src, sym), dst in new_trans.items():
             auto_det.transitions[(mapping[src], sym)] = [mapping[dst]]
         
-        # Affichage de la composition (Consigne Image)
+        # Affichage de la composition 
         self.afficher_composition(mapping)
         
         # Complétion automatique après déterminisation
@@ -264,13 +264,13 @@ class Automate:
         # 1. Créer le nouvel état initial (index = num_etats actuel)
         new_init = self.num_etats
         
-        # 2. Identifier TOUS les symboles (y compris £)
+        # 2. Identifier tous les symboles (y compris £)
         alphabet_complet = set(sym for (_, sym) in self.transitions.keys())
         
         new_trans = self.transitions.copy()
         new_finaux = list(self.etats_finaux)
 
-        # 3. Le nouvel état doit avoir les mêmes sorties que TOUS les anciens initiaux
+        # 3. Le nouvel état doit avoir les mêmes sorties que tous les anciens initiaux
         for sym in alphabet_complet:
             targets = set()
             for e_old in self.etats_initiaux:
@@ -298,7 +298,7 @@ class Automate:
    
 
     def complementaire(self):
-        # Affichage du type d'automate source (Exigence Image)
+        # Affichage du type d'automate source
         type_source = "AFDCM (Minimal)" if self.est_minimal() else "AFDC (Déterministe Complet)"
         print(f"\nConstruction du complémentaire à partir de : {type_source}")
 
@@ -323,9 +323,9 @@ class Automate:
         return hasattr(self, 'is_minimized') and self.is_minimized
 
     def minimiser(self):
-        # 1. SÉCURITÉ : Moore ne s'applique que sur un automate déterministe et complet
+        # 1. Moore ne s'applique que sur un automate déterministe et complet
         if not self.est_deterministe() or not self.est_complet():
-            print("⚠️ L'automate doit être DÉTERMINISTE et COMPLET pour être minimisé.")
+            print("L'automate doit être DÉTERMINISTE et COMPLET pour être minimisé.")
             return self
 
         # On définit l'alphabet de travail en excluant explicitement epsilon (£)
@@ -403,7 +403,7 @@ class Automate:
 
         # 4. RECONSTRUCTION
         if len(partitions_info) == self.num_etats:
-            print("\n✅ L'automate est déjà minimal.")
+            print("\nL'automate est déjà minimal.")
             self.is_minimized = True
             return self
 
@@ -438,7 +438,7 @@ class Automate:
                     auto_min.transitions[(i, s)] = [correspondance[dest_origine]]
 
         auto_min.is_minimized = True
-        print(f"✅ Minimisation terminée : {auto_min.num_etats} états restants.")
+        print(f"Minimisation terminée : {auto_min.num_etats} états restants.")
         return auto_min
     
     def reconnaitre_mot(self, mot):
@@ -446,7 +446,7 @@ class Automate:
         # On commence par la fermeture-epsilon des états initiaux
         etats_actuels = set(self.fermeture_epsilon(self.etats_initiaux))
         
-        # Cas du mot vide (noté souvent £ dans les tests, mais "" en Python)
+        # Cas du mot vide (noté £ dans les tests, mais "" en Python)
         if mot == "" or mot == "£":
             return any(e in self.etats_finaux for e in etats_actuels)
 
