@@ -93,13 +93,12 @@ def menu_principal():
                     # Affichage exigé par le sujet
                     print(f"'{mot if mot else 'mot vide'}' : {'oui' if resultat else 'non'}")
 
-            elif action == '6': # <--- On utilise ACTION ici
-                print("\nLancement du Complémentaire...")
-                if not mon_automate.est_deterministe() or not mon_automate.est_complet():
-                    print("Impossible : l'automate n'est pas déterministe ou pas complet.")
-                    print("Conseil : Faites '2' (Déterminiser) puis '3' (Compléter) avant.")
-                else:
-                    mon_automate = mon_automate.complementaire()
+            elif action == '6':
+                print("\n--- Phase de Complémentarisation ---")
+                nouvel_auto = mon_automate.complementaire()
+                if nouvel_auto:
+                    mon_automate = nouvel_auto
+                    # L'automate affiché juste après sera le complémentaire
             
             else:
                 print("⚠️ Choix non reconnu.")

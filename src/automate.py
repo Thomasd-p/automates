@@ -240,13 +240,18 @@ class Automate:
         return self
 
    
+
     def complementaire(self):
-        # Sécurité : le complémentaire nécessite un automate déterministe et complet
+        # Sécurité AFDC
         if not self.est_deterministe() or not self.est_complet():
-            print("Erreur : L'automate doit être DÉTERMINISTE et COMPLET pour calculer le complémentaire.")
+            print("Erreur : L'automate doit être DÉTERMINISTE et COMPLET.")
             return None
 
-        # On crée une copie de l'automate
+        # --- CONDITION EXIGÉE PAR L'EFREI ---
+        # Maintenant self.est_minimal() existe, donc plus d'AttributeError !
+        type_source = "AFDCM (Minimal)" if self.est_minimal() else "AFDC (Déterministe Complet)"
+        print(f"\n✨ Construction du complémentaire à partir de l'automate : {type_source}")
+
         auto_comp = Automate()
         auto_comp.num_symboles = self.num_symboles
         auto_comp.num_etats = self.num_etats
@@ -254,18 +259,39 @@ class Automate:
         auto_comp.num_etats_initiaux = self.num_etats_initiaux
         auto_comp.transitions = self.transitions.copy()
 
-        # INVERSION DES ÉTATS FINAUX
-        # Tous les états qui n'étaient PAS finaux le deviennent
-        nouveaux_finaux = []
-        for i in range(self.num_etats):
-            if i not in self.etats_finaux:
-                nouveaux_finaux.append(i)
-        
+        # Inversion : Finaux <-> Non-finaux
+        nouveaux_finaux = [i for i in range(self.num_etats) if i not in self.etats_finaux]
         auto_comp.etats_finaux = nouveaux_finaux
         auto_comp.num_etats_finaux = len(nouveaux_finaux)
         
-        print("Automate complémentaire généré.")
         return auto_comp
+    
+    def est_minimal(self):
+        # Un automate est minimal si le nombre d'états ne change pas après minimisation
+        # On utilise une version "légère" pour éviter une boucle infinie
+        if not self.est_deterministe() or not self.est_complet():
+            return False
+        
+        # On calcule les partitions (algorithme de Moore)
+        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles) if chr(ord('a') + i) != "£"]
+        finaux = set(self.etats_finaux)
+        partitions = [set(range(self.num_etats)) - finaux, finaux]
+        partitions = [p for p in partitions if p]
+        
+        while True:
+            new_partitions = []
+            for groupe in partitions:
+                subgroups = {}
+                for etat in groupe:
+                    key = tuple(next((i for i, g in enumerate(partitions) if self.transitions.get((etat, s), [-1])[0] in g), -1) for s in alphabet)
+                    if key not in subgroups: subgroups[key] = set()
+                    subgroups[key].add(etat)
+                new_partitions.extend(subgroups.values())
+            if len(new_partitions) == len(partitions): break
+            partitions = new_partitions
+            
+        # Si le nombre de groupes final est égal au nombre d'états actuel, c'est qu'il est déjà minimal
+        return len(partitions) == self.num_etats
 
     def minimiser(self, test_auto_min=False):
         if not test_auto_min and self.minimiser(test_auto_min=True):
