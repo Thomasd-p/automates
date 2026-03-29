@@ -264,6 +264,9 @@ class Automate:
 
         # 1. Créer le nouvel état initial (index = num_etats actuel)
         new_init = self.num_etats
+        print(f"\n--- Phase de Standardisation ---")
+        print(f"  Action : Création d'un nouvel état initial unique (État {new_init}).")
+        print(f"  Objectif : Garantir qu'aucune transition ne revient vers l'entrée.")
         
         # 2. Identifier tous les symboles (y compris £)
         alphabet_complet = set(sym for (_, sym) in self.transitions.keys())
@@ -272,6 +275,7 @@ class Automate:
         new_finaux = list(self.etats_finaux)
 
         # 3. Le nouvel état doit avoir les mêmes sorties que tous les anciens initiaux
+        print(f"  Action : Copie des transitions des anciens initiaux {self.etats_initiaux} vers l'état {new_init}.")
         for sym in alphabet_complet:
             targets = set()
             for e_old in self.etats_initiaux:
@@ -284,6 +288,7 @@ class Automate:
         # 4. Gérer le caractère final
         # Si un des anciens initiaux était final, le nouveau le devient
         if any(e in self.etats_finaux for e in self.etats_initiaux):
+            print(f"  Note : Un ancien état initial était final, donc l'état {new_init} devient FINAL (acceptation du mot vide).")
             if new_init not in new_finaux:
                 new_finaux.append(new_init)
 
@@ -293,7 +298,8 @@ class Automate:
         self.num_etats_initiaux = 1
         self.etats_finaux = new_finaux
         self.transitions = new_trans
-        
+
+        print(f"  Résultat : L'automate est désormais standardisé.")
         return self
 
    
