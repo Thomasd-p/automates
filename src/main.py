@@ -1,117 +1,77 @@
 import os
 from automate import Automate
 
-
-
 def menu_principal():
     while True:
-        # Choix de l'automate
-        print("\n" + "="*40)
-        choix = input("Quel automate voulez-vous utiliser ? (1 à 44) ou 'q' pour quitter : ")
+        # --- 1. SÉLECTION ---
+        print("\n" + "═"*50)
+        choix = input("Quel automate ? (1-44) ou 'q' : ")
 
-        if choix.lower() == 'q':
-            print("Fermeture du programme.")
-            break
-
+        if choix.lower() == 'q': break
         nom_fichier = f"./tests/automate{choix}.txt"
 
-        # Vérification de l'existence du fichier
         if not os.path.exists(nom_fichier):
-            print(f"Erreur : Le fichier '{nom_fichier}' n'existe pas dans le dossier 'tests/'.")
+            print("Fichier introuvable.")
             continue
 
-        # Chargement et affichage
         mon_automate = Automate()
         mon_automate.lire_fichier(nom_fichier)
         
-        print(f"\n--- Structure de l'automate n°{choix} ---")
-        mon_automate.afficher()
-
-        # Standardisation
-        if mon_automate.est_standard():
-            print("L'automate est déjà standard.")
-        else:
-            print("Cet automate n'est pas standard.")
-            stand_choix = input("Souhaitez-vous le standardiser ? (oui/non) : ")
-            if stand_choix.lower() == 'oui':
-                mon_automate.standardiser()
-                print("\nVoici l'automate après standardisation :")
-                mon_automate.afficher()
-
-        
-        # Determinisation
-        det_rep= input("Souhaitez vous déterminiser l'automate ? (oui ou non ) ")
-        if det_rep.lower() == 'oui':
-            if mon_automate.est_deterministe() :
-                print(" Cet automate est déjà déterministe")
-            else :
-                mon_automate = mon_automate.determiniser()
-                print("\n Automate après déterminisation :")
-                mon_automate.afficher()
-        if det_rep.lower() == 'non':
-            print("D'accord")
-
-
-        #Completer
-
-        comp_choix= input("Souhaitez vous completer cet automate ? (oui ou non )")
-        if comp_choix.lower() == 'oui':
-            mon_automate.completer()
-            print("Voici l'automate complété : ")
+        # --- 2. ÉTAT DES LIEUX AUTOMATIQUE ---
+        # On affiche les propriétés tout de suite pour savoir où on en est
+        while True:
+            print("\n" + "─"*30)
+            print(f"📍 ANALYSE DE L'AUTOMATE N°{choix} :")
+            
+            # Diagnostic en temps réel
+            est_det = "OUI" if mon_automate.est_deterministe() else "NON"
+            est_std = "OUI" if mon_automate.est_standard() else "NON"
+            est_comp = "OUI" if mon_automate.est_complet() else "NON"
+            
+            print(f"Déterministe : {est_det} | Standard : {est_std} | Complet : {est_comp}")
             mon_automate.afficher()
 
-        if comp_choix.lower() == 'non':
-            print("D'accord")
+            print("\n--- ACTIONS ---")
+            print("1. Standardiser")
+            print("2. Déterminiser")
+            print("3. Compléter")
+            print("4. Minimiser")
+            print("5. Tester un mot")
+            print("c. CHANGER d'automate")
+            
+            action = input("\nVotre choix : ").lower()
 
-        # Minimiser
+            if action == 'c': break
 
-        mini_choix= input("Souhaitez vous minimiser cet automate ? (oui ou non )")
-        if mini_choix.lower() == 'oui':
-            print("L'automate doit être déterministe et complet pour cette étape : ")
-            if mon_automate.est_deterministe() :
-                print("L'automate est déterministe, nous pouvons continuer")
-            elif not mon_automate.est_deterministe() :
-                det_min_choix = input("L'automate n'est pas déterministe, souhaitez vous déterminiser cet automate ? (oui ou non) " )
-                if det_min_choix.lower() == 'oui':
-                    mon_automate = mon_automate.determiniser()
-                    print(" C'est fait !")
-                else :
-                    print("Pas de minimisation possible, aurevoir")
-                    break
+            elif action == '1':
+                print("\nLancement de la Standardisation...")
+                mon_automate.standardiser()
+                # On ne met pas de condition "if" pour être sûr que ça s'exécute
 
-            if not mon_automate.est_complet() :
-                min_comp_choix = input("L'automate n'est pas complet, souhaitez vous compléter l'automate pour continuer ")
-                if min_comp_choix.lower() == 'oui':
-                    mon_automate.completer()
-                else :
-                    print("Pas de minimisation possible, aurevoir")
-                    break
+            elif action == '2':
+                print("\nLancement de la Déterminisation...")
+                mon_automate = mon_automate.determiniser()
 
-            elif mon_automate.est_complet():
-                print("L'automate est minimisé nous pouvons continuer")
+            elif action == '3':
+                print("\nLancement de la Complétion...")
+                mon_automate.completer()
+
+            elif action == '4':
+                print("\nLancement de la Minimisation...")
+                # On prépare le terrain nous-mêmes
+                if not mon_automate.est_deterministe(): mon_automate = mon_automate.determiniser()
+                if not mon_automate.est_complet(): mon_automate.completer()
                 mon_automate = mon_automate.minimiser()
-                print( " L'automate minimisé : ")
-                mon_automate.afficher()
-        else :
-            print("D'accord")
 
-
-        choix_recherche=input("Souhaitez vous rechercher un mot dans l'automate ? (oui ou non )")
-
-        if choix_recherche.lower() == 'oui':
-            mot = input("Entrez un mot à tester ou 'c' pour changer d'automate : ")
-            resultat = mon_automate.reconnaitre_mot(mot)
-            if resultat:
-                print(f" Le mot '{mot}' est reconnu.")
+            elif action == '5':
+                mot = input("Mot à tester : ")
+                if mon_automate.reconnaitre_mot(mot):
+                    print("✅ Reconnu")
+                else:
+                    print("❌ Refusé")
+            
             else:
-                print(f" Le mot '{mot}' n'est pas reconnu.")
-
-            if mot.lower() == 'c':
-                continue
-
-
-        else :
-            print("D'accord, aurevoir !")
+                print("Choix non reconnu.")
 
 if __name__ == "__main__":
     menu_principal()
