@@ -175,6 +175,7 @@ class Automate:
                 
                 if next_set_raw:
                     next_set = self.fermeture_epsilon(next_set_raw)
+                    print(f"  Transition : {list(current_set)} --({sym})--> {list(next_set)}")
                     new_trans[(current_set, sym)] = next_set
                     if next_set not in new_states:
                         new_states.append(next_set)
