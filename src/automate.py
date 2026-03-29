@@ -334,15 +334,22 @@ class Automate:
         return auto_min
 
     def reconnaitre_mot(self, mot):
+        # Sécurité demandée par le sujet : l'automate doit être DFA et complet
+        if not self.est_deterministe() or not self.est_complet():
+            print("⚠️ Attention : La reconnaissance nécessite un automate déterministe et complet.")
+            # On continue quand même car ta fonction est assez robuste pour gérer le NFA
+            
         currents = self.fermeture_epsilon(self.etats_initiaux)
         for char in mot:
             next_step = set()
             for e in currents:
                 next_step.update(self.transitions.get((e, char), []))
             currents = self.fermeture_epsilon(next_step)
-            if not currents: return False
+            if not currents: 
+                return False
+        
         return any(e in self.etats_finaux for e in currents)
-
+    
     def automate_epsilon(self):
         return any(sym == "£" for (_, sym) in self.transitions.keys())
     

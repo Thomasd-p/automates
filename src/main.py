@@ -55,12 +55,12 @@ def menu_principal():
             
             action = input("\nVotre choix : ").lower()
 
-            if action == 'c': break
+            if action == 'c': 
+                break
 
             elif action == '1':
                 print("\nLancement de la Standardisation...")
                 mon_automate.standardiser()
-                # On ne met pas de condition "if" pour être sûr que ça s'exécute
 
             elif action == '2':
                 print("\nLancement de la Déterminisation...")
@@ -72,21 +72,29 @@ def menu_principal():
 
             elif action == '4':
                 print("\nLancement de la Minimisation...")
-                # On prépare le terrain nous-mêmes
-                if not mon_automate.est_deterministe(): mon_automate = mon_automate.determiniser()
-                if not mon_automate.est_complet(): mon_automate.completer()
+                if not mon_automate.est_deterministe(): 
+                    mon_automate = mon_automate.determiniser()
+                if not mon_automate.est_complet(): 
+                    mon_automate.completer()
                 mon_automate = mon_automate.minimiser()
 
-            elif action == '5':
-                mot = input("Mot à tester : ")
-                if mon_automate.reconnaitre_mot(mot):
-                    print("Reconnu")
-                else:
-                    print("Refusé")
-            
-            elif choix == '6':
+            elif action == '5': # <--- On utilise ACTION ici
+                print("\n--- Mode Reconnaissance de mots ---")
+                print("(Tapez 'fin' pour arrêter)")
+                while True:
+                    mot = input("Entrez un mot à tester : ").strip()
+                    if mot.lower() == 'fin':
+                        print("Retour au menu principal.")
+                        break
+                    
+                    # Logique de reconnaissance
+                    resultat = mon_automate.reconnaitre_mot(mot if mot != "£" else "")
+                    
+                    # Affichage exigé par le sujet
+                    print(f"'{mot if mot else 'mot vide'}' : {'oui' if resultat else 'non'}")
+
+            elif action == '6': # <--- On utilise ACTION ici
                 print("\nLancement du Complémentaire...")
-                # On vérifie d'abord s'il est déterministe et complet
                 if not mon_automate.est_deterministe() or not mon_automate.est_complet():
                     print("Impossible : l'automate n'est pas déterministe ou pas complet.")
                     print("Conseil : Faites '2' (Déterminiser) puis '3' (Compléter) avant.")
@@ -94,7 +102,7 @@ def menu_principal():
                     mon_automate = mon_automate.complementaire()
             
             else:
-                print("Choix non reconnu.")
+                print("⚠️ Choix non reconnu.")
 
 if __name__ == "__main__":
     menu_principal()
