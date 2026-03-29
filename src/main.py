@@ -27,6 +27,18 @@ def menu_principal():
         print(f"\n--- Structure de l'automate n°{choix} ---")
         mon_automate.afficher()
 
+        # Standardisation
+        if mon_automate.est_standard():
+            print("L'automate est déjà standard.")
+        else:
+            print("Cet automate n'est pas standard.")
+            stand_choix = input("Souhaitez-vous le standardiser ? (oui/non) : ")
+            if stand_choix.lower() == 'oui':
+                mon_automate.standardiser()
+                print("\nVoici l'automate après standardisation :")
+                mon_automate.afficher()
+
+        
         # Determinisation
         det_rep= input("Souhaitez vous déterminiser l'automate ? (oui ou non ) ")
         if det_rep.lower() == 'oui':
