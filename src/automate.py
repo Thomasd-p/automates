@@ -4,90 +4,87 @@ class Automate:
     # definition de la fonction de lecture
     def lire_fichier(self, chemin_fichier):
         try:
-            with open(chemin_fichier, "r") as fichier:
-                automate = fichier.readlines()
+            # CHANGEMENT : Ajout de encoding="utf-8" pour lire correctement le £
+            with open(chemin_fichier, "r", encoding="utf-8") as fichier:
+                # On nettoie les lignes pour éviter les espaces vides ou les sauts de ligne
+                automate = [ligne.strip() for ligne in fichier if ligne.strip()]
 
-                # initialisation du nombre de symboles de l'alphabet
-                self.num_symboles = int(automate[0].strip())
+                if not automate:
+                    return
 
-                # initialisation du nombre d'etats
-                self.num_etats = int(automate[1].strip())
+                # Ligne 1 : Nombre de symboles
+                self.num_symboles = int(automate[0])
 
-                # etats initiaux
-                ligne_initiale = automate[2].strip().split()
+                # Ligne 2 : Nombre d'états
+                self.num_etats = int(automate[1])
+
+                # Ligne 3 : États initiaux (Nb, puis liste)
+                ligne_initiale = automate[2].split()
                 self.num_etats_initiaux = int(ligne_initiale[0])
                 self.etats_initiaux = [int(x) for x in ligne_initiale[1:]]
 
-                # etats finaux
-                ligne_finale = automate[3].strip().split()
+                # Ligne 4 : États finaux (Nb, puis liste)
+                ligne_finale = automate[3].split()
                 self.num_etats_finaux = int(ligne_finale[0])
                 self.etats_finaux = [int(x) for x in ligne_finale[1:]]
 
-                # initialisation du nombre de transitions
-                self.num_transitions = int(automate[4].strip())
+                # Ligne 5 : Nombre de transitions
+                self.num_transitions = int(automate[4])
 
-                # transitions
-                # clé = (état de depart, symbole) = liste d'etats d'arrivée
+                # Initialisation du dictionnaire
                 self.transitions = {}
 
+                # Lecture des transitions à partir de la ligne 6
+                # On utilise split() pour que "0 £ 1" devienne ["0", "£", "1"]
                 if self.num_transitions != 0:
                     for i in range(5, 5 + self.num_transitions):
-                        ligne = automate[i].strip()
+                        if i >= len(automate): break
+                        
+                        parties = automate[i].split()
+                        
+                        if len(parties) >= 3:
+                            debut = int(parties[0])
+                            symbole = parties[1]
+                            fin = int(parties[2])
 
-                        # on cherche où s'arrête l'etat de depart
-                        j = 0
-                        while j < len(ligne) and ligne[j].isdigit():
-                            j += 1
-
-                        # extraction de l'etat de depart
-                        debut = int(ligne[:j])
-
-                        # extraction du symbole de transition
-                        symbole = ligne[j]
-
-                        # extraction de l'etat d'arrivée
-                        fin = int(ligne[j + 1:])
-
-                        # creation de la clé (etat de depart, symbole)
-                        cle = (debut, symbole)
-
-                        # si la clé n'existe pas, on initialise
-                        if cle not in self.transitions:
-                            self.transitions[cle] = []
-
-                        # ajout de l'etat d'arrivée à la liste des transitions
-                        self.transitions[cle].append(fin)
+                            cle = (debut, symbole)
+                            if cle not in self.transitions:
+                                self.transitions[cle] = []
+                            
+                            # On ajoute l'état d'arrivée s'il n'est pas déjà présent
+                            if fin not in self.transitions[cle]:
+                                self.transitions[cle].append(fin)
 
         except FileNotFoundError:
             print(f"Erreur : le fichier '{chemin_fichier}' n'existe pas.")
+        except Exception as e:
+            print(f"Une erreur est survenue lors de la lecture : {e}")
 
     def afficher(self):
-        # genere l'alphabet
-        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
+        # Récupère tous les symboles uniques présents dans les transitions
+        symboles_presents = set()
+        for _, sym in self.transitions.keys():
+            symboles_presents.add(sym)
+        
+        # On trie l'alphabet (a, b... puis les symboles spéciaux à la fin)
+        alphabet = sorted(list(symboles_presents))
 
-        # Préparation des données de chaque ligne
+        # ... (le reste de ta logique de préparation des lignes est correcte)
         lignes = []
         for etat in range(self.num_etats):
-            # precise si c'est un etat entree ou sortie
             marqueur = ""
-            if etat in self.etats_initiaux:
-                marqueur += "E "
-            if etat in self.etats_finaux:
-                marqueur += "S"
+            if etat in self.etats_initiaux: marqueur += "E "
+            if etat in self.etats_finaux: marqueur += "S"
 
-            # Récupération des transitions pour cet état
             destinations_par_symbole = []
             for symbole in alphabet:
                 cle = (etat, symbole)
                 if cle in self.transitions:
-                    # S'il y a plusieurs destinations, on les sépare par des virgules
                     dests = ",".join(str(d) for d in self.transitions[cle])
                     destinations_par_symbole.append(dests)
                 else:
-                    # S'il n'y a pas de transition, on met un tiret
                     destinations_par_symbole.append("--")
 
-            # On sauvegarde la ligne : (Marqueur, Etat, Liste des destinations)
             lignes.append((marqueur.strip(), str(etat), destinations_par_symbole))
 
         #  Calcul de la largeur des colonnes
