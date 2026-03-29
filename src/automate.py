@@ -250,7 +250,7 @@ class Automate:
         # --- CONDITION EXIGÉE PAR L'EFREI ---
         # Maintenant self.est_minimal() existe, donc plus d'AttributeError !
         type_source = "AFDCM (Minimal)" if self.est_minimal() else "AFDC (Déterministe Complet)"
-        print(f"\n✨ Construction du complémentaire à partir de l'automate : {type_source}")
+        print(f"\nConstruction du complémentaire à partir de l'automate : {type_source}")
 
         auto_comp = Automate()
         auto_comp.num_symboles = self.num_symboles
@@ -266,103 +266,124 @@ class Automate:
         
         return auto_comp
     
-    def est_minimal(self):
-        # Un automate est minimal si le nombre d'états ne change pas après minimisation
-        # On utilise une version "légère" pour éviter une boucle infinie
+    
+
+    def minimiser(self):
+        # 1. SÉCURITÉ : Moore ne s'applique que sur un automate déterministe et complet
         if not self.est_deterministe() or not self.est_complet():
-            return False
+            print("⚠️ L'automate doit être DÉTERMINISTE et COMPLET pour être minimisé.")
+            return self
+
+        # On définit l'alphabet de travail en excluant explicitement epsilon (£)
+        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
+        alphabet = [sym for sym in alphabet if sym != "£"]
         
-        # On calcule les partitions (algorithme de Moore)
-        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles) if chr(ord('a') + i) != "£"]
-        finaux = set(self.etats_finaux)
-        partitions = [set(range(self.num_etats)) - finaux, finaux]
-        partitions = [p for p in partitions if p]
+        # 2. Partition initiale : Terminaux (T) et Non-Terminaux (NT)
+        etats_T = set(self.etats_finaux)
+        etats_NT = set(range(self.num_etats)) - etats_T
         
+        partitions_info = []
+        if etats_NT: partitions_info.append({'type': 'NT', 'etats': etats_NT})
+        if etats_T: partitions_info.append({'type': 'T', 'etats': etats_T})
+
+        numero_etape = 0
+        
+        def afficher_P(n, info):
+            affichage = []
+            c_t_local, c_nt_local = 1, 1
+            for group in info:
+                label = f"{group['type']}{c_t_local if group['type']=='T' else c_nt_local}"
+                if group['type'] == 'T': c_t_local += 1
+                else: c_nt_local += 1
+                affichage.append(f"{label}:{sorted(list(group['etats']))}")
+            print(f"P{n} = [{', '.join(affichage)}]")
+
+        afficher_P(numero_etape, partitions_info)
+
+        # 3. BOUCLE DE MOORE
         while True:
-            new_partitions = []
-            for groupe in partitions:
+            nouvelles_partitions_info = []
+            print(f"\nAnalyse des transitions pour P{numero_etape} :")
+            
+            for group in partitions_info:
                 subgroups = {}
-                for etat in groupe:
-                    key = tuple(next((i for i, g in enumerate(partitions) if self.transitions.get((etat, s), [-1])[0] in g), -1) for s in alphabet)
+                for etat in group['etats']:
+                    comportement = []
+                    labels_trans = []
+                    for s in alphabet:
+                        # On prend le premier état d'arrivée (car déterministe)
+                        dest_list = self.transitions.get((etat, s), [])
+                        dest = dest_list[0] if dest_list else -1
+                        
+                        # Trouver le label du groupe de destination
+                        dest_label = "???"
+                        tmp_t, tmp_nt = 1, 1
+                        for g_info in partitions_info:
+                            this_label = f"{g_info['type']}{tmp_t if g_info['type']=='T' else tmp_nt}"
+                            if g_info['type'] == 'T': tmp_t += 1
+                            else: tmp_nt += 1
+                            if dest in g_info['etats']:
+                                dest_label = this_label
+                                break
+                        
+                        comportement.append(dest_label)
+                        labels_trans.append(f"({s}->{dest_label})")
+                    
+                    print(f"  État {etat} : {' '.join(labels_trans)}")
+                    key = tuple(comportement)
                     if key not in subgroups: subgroups[key] = set()
                     subgroups[key].add(etat)
-                new_partitions.extend(subgroups.values())
-            if len(new_partitions) == len(partitions): break
-            partitions = new_partitions
-            
-        # Si le nombre de groupes final est égal au nombre d'états actuel, c'est qu'il est déjà minimal
-        return len(partitions) == self.num_etats
-
-    def minimiser(self, test_auto_min=False):
-        if not test_auto_min and self.minimiser(test_auto_min=True):
-            print("L'automate est déjà MINIMAL. Opération annulée.")
-            return self
-        # On définit l'alphabet réel en excluant epsilon et en se basant sur num_symboles
-        # Si num_symboles est 2, on ne prend que 'a' et 'b'
-        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
-
-        etats_terminaux = set(self.etats_finaux)
-        tous_les_etats = set(range(self.num_etats))
-        etats_non_terminaux = tous_les_etats - etats_terminaux
-
-        partitions = []
-        if etats_non_terminaux: partitions.append(etats_non_terminaux)
-        if etats_terminaux: partitions.append(etats_terminaux)
-
-        while True:
-            nouvelles_partitions = []
-            for groupe in partitions:
-                groupes_separes = {}
-                for etat in groupe:
-                    comportement = []
-                    for symbole in alphabet:
-                        # On vérifie si la transition existe pour éviter le KeyError
-                        if (etat, symbole) in self.transitions and self.transitions[(etat, symbole)]:
-                            etat_arrivee = self.transitions[(etat, symbole)][0]
-                            # On trouve l'index du groupe de l'état d'arrivée
-                            index_groupe = next((i for i, g in enumerate(partitions) if etat_arrivee in g), -1)
-                            comportement.append(index_groupe)
-                        else:
-                            comportement.append(-1)
-                    
-                    c_tuple = tuple(comportement)
-                    if c_tuple not in groupes_separes:
-                        groupes_separes[c_tuple] = set()
-                    groupes_separes[c_tuple].add(etat)
                 
-                nouvelles_partitions.extend(groupes_separes.values())
-
-            if len(nouvelles_partitions) == len(partitions):
+                for sub in subgroups.values():
+                    nouvelles_partitions_info.append({'type': group['type'], 'etats': sub})
+            
+            if len(nouvelles_partitions_info) == len(partitions_info):
                 break
-            partitions = nouvelles_partitions
+            
+            partitions_info = nouvelles_partitions_info
+            numero_etape += 1
+            afficher_P(numero_etape, partitions_info)
 
-        if test_auto_min: return len(partitions) == self.num_etats
+        # 4. RECONSTRUCTION
+        if len(partitions_info) == self.num_etats:
+            print("\n✅ L'automate est déjà minimal.")
+            return self
 
-        # Reconstruction de l'automate minimal
         auto_min = Automate()
         auto_min.num_symboles = self.num_symboles
-        auto_min.num_etats = len(partitions)
+        auto_min.num_etats = len(partitions_info)
         
-        correspondance = {etat: i for i, groupe in enumerate(partitions) for etat in groupe}
+        correspondance = {}
+        c_t, c_nt = 1, 1
+        print("\nTable de correspondance (AFDC -> AFDCM) :")
+        for i, group in enumerate(partitions_info):
+            # Correction de la NameError ici (on utilise bien c_nt)
+            label = f"{group['type']}{c_t if group['type']=='T' else c_nt}"
+            if group['type'] == 'T': c_t += 1
+            else: c_nt += 1
+            
+            print(f"  Nouvel état {i} ({label}) <-- {sorted(list(group['etats']))}")
+            for etat in group['etats']:
+                correspondance[etat] = i
 
+        # Reconstruction finale
         auto_min.etats_initiaux = list(set(correspondance[e] for e in self.etats_initiaux))
         auto_min.num_etats_initiaux = len(auto_min.etats_initiaux)
         auto_min.etats_finaux = list(set(correspondance[e] for e in self.etats_finaux))
         auto_min.num_etats_finaux = len(auto_min.etats_finaux)
 
-        for i, groupe in enumerate(partitions):
-            representant = list(groupe)[0]
-            for symbole in alphabet:
-                if (representant, symbole) in self.transitions:
-                    dest = self.transitions[(representant, symbole)][0]
-                    auto_min.transitions[(i, symbole)] = [correspondance[dest]]
-        
-        return auto_min
+        for i, group in enumerate(partitions_info):
+            rep = list(group['etats'])[0]
+            for s in alphabet:
+                if (rep, s) in self.transitions:
+                    auto_min.transitions[(i, s)] = [correspondance[self.transitions[(rep, s)][0]]]
 
+        return auto_min
+    
     def reconnaitre_mot(self, mot):
         # Sécurité demandée par le sujet : l'automate doit être DFA et complet
         if not self.est_deterministe() or not self.est_complet():
-            print("⚠️ Attention : La reconnaissance nécessite un automate déterministe et complet.")
+            print("Attention : La reconnaissance nécessite un automate déterministe et complet.")
             # On continue quand même car ta fonction est assez robuste pour gérer le NFA
             
         currents = self.fermeture_epsilon(self.etats_initiaux)
