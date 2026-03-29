@@ -169,15 +169,36 @@ class Automate:
         return True
 
     def completer(self):
-        if self.est_complet(): return
-        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
-        poubelle = self.num_etats
-        self.num_etats += 1
+        if self.est_complet():
+            print("L'automate est déjà complet")
+            return
+            
+        # On récupère les vrais symboles (en ignorant epsilon £)
+        alphabet_reel = set()
+        for (_, sym) in self.transitions.keys():
+            if sym != "£":
+                alphabet_reel.add(sym)
+        
+        # Si l'alphabet extrait est vide, on utilise num_symboles par défaut
+        if not alphabet_reel:
+            alphabet_reel = [chr(ord('a') + i) for i in range(self.num_symboles)]
+
+        nouvel_etat = self.num_etats
+        poubelle_creee = False
+
         for i in range(self.num_etats):
-            for sym in alphabet:
-                if (i, sym) not in self.transitions:
-                    self.transitions[(i, sym)] = [poubelle]
-        print(f"État poubelle {poubelle} ajouté.")
+            for j in alphabet_reel:
+                if (i, j) not in self.transitions:
+                    if not poubelle_creee:
+                        self.num_etats += 1
+                        poubelle_creee = True
+                    self.transitions[(i, j)] = [nouvel_etat]
+
+        if poubelle_creee:
+            # L'état poubelle boucle sur lui-même pour tous les symboles
+            for j in alphabet_reel:
+                self.transitions[(nouvel_etat, j)] = [nouvel_etat]
+            print(f"État poubelle {nouvel_etat} ajouté.")
 
     def minimiser(self):
         if not self.est_deterministe(): self = self.determiniser()
