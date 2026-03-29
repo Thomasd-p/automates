@@ -3,12 +3,12 @@ from automate import Automate
 
 def menu_principal():
     while True:
-        # --- 1. SÉLECTION ---
+        # SELECTION
         print("\n" + "═"*50)
         choix = input("Quel automate (1-44) ou 'q' : ")
         if choix.lower() == 'q': break
 
-        # On teste tous les chemins possibles selon où l'utilisateur a lancé le terminal
+        
         chemins_possibles = [
             f"tests/automate{choix}.txt",      # Si on est dans /AUTOMATES
             f"../tests/automate{choix}.txt",   # Si on est dans /src
@@ -23,7 +23,7 @@ def menu_principal():
 
         if not nom_fichier:
             print(f"Erreur : Impossible de trouver 'automate{choix}.txt'")
-            # Petit debug pour t'aider :
+            
             print(f"Dossier actuel : {os.getcwd()}") 
             continue
 
@@ -31,7 +31,7 @@ def menu_principal():
         mon_automate.lire_fichier(nom_fichier)
         
         
-        # On affiche les propriétés tout de suite pour savoir où on en est
+        # Menu du programme
         while True:
             print("\n" + "─"*30)
             print(f"ANALYSE DE L'AUTOMATE N°{choix} :")
@@ -78,7 +78,7 @@ def menu_principal():
                     mon_automate.completer()
                 mon_automate = mon_automate.minimiser()
 
-            elif action == '5': # <--- On utilise ACTION ici
+            elif action == '5': 
                 print("\n--- Mode Reconnaissance de mots ---")
                 print("(Tapez 'fin' pour arrêter)")
                 while True:
@@ -87,10 +87,10 @@ def menu_principal():
                         print("Retour au menu principal.")
                         break
                     
-                    # Logique de reconnaissance
+                    
                     resultat = mon_automate.reconnaitre_mot(mot if mot != "£" else "")
                     
-                    # Affichage exigé par le sujet
+                    
                     print(f"'{mot if mot else 'mot vide'}' : {'oui' if resultat else 'non'}")
 
             elif action == '6':
@@ -101,7 +101,7 @@ def menu_principal():
                     # L'automate affiché juste après sera le complémentaire
             
             else:
-                print("⚠️ Choix non reconnu.")
+                print("Choix non reconnu.")
 
 if __name__ == "__main__":
     menu_principal()
