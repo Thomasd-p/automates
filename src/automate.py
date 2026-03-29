@@ -117,7 +117,7 @@ class Automate:
         
         # Un AF ne doit avoir qu'un seul état initial
         if self.num_etats_initiaux > 1:
-            raisons.append(f"- Il possède {self.num_etats_initiaux} états initiaux (un seul autorisé).")
+            raisons.append(f"- Il possède {self.num_etats_initiaux} états initiaux, au lieu d'un seul.")
         
         # Un AF ne doit pas avoir d'epsilon-transitions (£)
         if self.automate_epsilon():
@@ -134,7 +134,7 @@ class Automate:
 
         if raisons:
             if verbose:
-                print("\nL'automate n'est PAS DÉTERMINISTE pour les raisons suivantes :")
+                print("\nL'automate n'est PAS déterministe pour les raisons suivantes :")
                 for r in raisons:
                     print(r)
             return False
