@@ -112,17 +112,54 @@ class Automate:
         
         print("=" * len(en_tete) + "\n")
 
-    def est_deterministe(self):
-        if self.num_etats_initiaux > 1 or self.automate_epsilon(): return False
-        return all(len(v) <= 1 for v in self.transitions.values())
+    def est_deterministe(self, verbose=True):
+        raisons = []
+        
+        # Un AF ne doit avoir qu'un seul état initial
+        if self.num_etats_initiaux > 1:
+            raisons.append(f"- Il possède {self.num_etats_initiaux} états initiaux (un seul autorisé).")
+        
+        # Un AF ne doit pas avoir d'epsilon-transitions (£)
+        if self.automate_epsilon():
+            raisons.append("- Il contient des epsilon-transitions (£).")
+        
+        # Chaque état ne doit avoir qu'une seule transition possible par symbole
+        conflits = []
+        for (etat, sym), successeurs in self.transitions.items():
+            if len(successeurs) > 1:
+                conflits.append(f"({etat}, {sym})")
+        
+        if conflits:
+            raisons.append(f"- Transitions multiples pour les couples : {', '.join(conflits)}.")
+
+        if raisons:
+            if verbose:
+                print("\nL'automate n'est PAS DÉTERMINISTE pour les raisons suivantes :")
+                for r in raisons:
+                    print(r)
+            return False
+        
+        return True
 
     def determiniser(self):
-        if self.est_deterministe():
-            print("L'automate est déjà DÉTERMINISTE. Opération annulée.")
-            return self
+        # 1. Vérification avec affichage des raisons si non déterministe
+        if self.est_deterministe(verbose=True):
+            print("\nL'automate est déjà DÉTERMINISTE.")
+            # Si déjà déterministe, on vérifie s'il est complet (Consigne Image 2)
+            if self.est_complet():
+                print("L'automate est déjà COMPLET. AFDC obtenu.")
+                return self
+            else:
+                print("L'automate n'est pas COMPLET. Lancement de la complétion...")
+                return self.completion() # Assure-toi d'avoir cette méthode
+
+        print("\n--- Phase de Déterminisation (Construction par sous-ensembles) ---")
         
-        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles)]
-        start_set = self.fermeture_epsilon(self.etats_initiaux)
+        # On définit l'alphabet sans epsilon
+        alphabet = [chr(ord('a') + i) for i in range(self.num_symboles) if chr(ord('a') + i) != "£"]
+        
+        # Calcul de la fermeture-epsilon de l'état initial
+        start_set = frozenset(self.fermeture_epsilon(self.etats_initiaux))
         
         new_states = [start_set]
         new_trans = {}
@@ -136,12 +173,13 @@ class Automate:
                     next_set_raw.update(self.transitions.get((etat, sym), []))
                 
                 if next_set_raw:
-                    next_set = self.fermeture_epsilon(next_set_raw)
+                    next_set = frozenset(self.fermeture_epsilon(next_set_raw))
                     new_trans[(current_set, sym)] = next_set
                     if next_set not in new_states:
                         new_states.append(next_set)
                         queue.append(next_set)
 
+        # Création du nouvel automate
         auto_det = Automate()
         auto_det.num_symboles = self.num_symboles
         auto_det.num_etats = len(new_states)
@@ -154,6 +192,8 @@ class Automate:
         
         for (src, sym), dst in new_trans.items():
             auto_det.transitions[(mapping[src], sym)] = [mapping[dst]]
+        
+        print(f"Déterminisation terminée : {auto_det.num_etats} états créés.")
         return auto_det
 
     def est_complet(self):
