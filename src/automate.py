@@ -54,78 +54,84 @@ class Automate:
         except Exception as e:
             print(f"Erreur lecture : {e}")
 
-    def afficher(self):
-        """Affiche l'automate sous forme de table de transition"""
-        # 1. Extraction et nettoyage de l'alphabet
-        symboles_presents = set(sym for (_, sym) in self.transitions.keys())
-        
-        # On définit l'alphabet réel (a, b...) en excluant l'epsilon (qu'il s'appelle £ ou c)
-        alphabet = sorted([s for s in symboles_presents if s != "£" and s != "c"])
-        
-        # On ajoute l'epsilon à la fin si présent, en l'unifiant sous le symbole £
-        has_epsilon = "£" in symboles_presents or "c" in symboles_presents
-        if has_epsilon:
-            alphabet.append("£")
-        
-        if not alphabet: 
-            alphabet = [" "]
+    def est_asynchrone(self):
+        """
+        Vérifie si l'automate contient au moins une transition étiquetée par 
+        le mot vide (£). Si oui, l'automate est dit 'asynchrone'.
+        """
+        # On parcourt toutes les clés (départ, symbole) de notre dictionnaire
+        for (etat, sym) in self.transitions.keys():
+            if sym == "£":
+                return True
+        return False
 
-        # 2. Préparation des lignes et calcul des largeurs
+    def afficher(self):
+        """
+        Affiche l'automate sous forme de tableau de transition.
+        L'alphabet est généré dynamiquement selon num_symboles.
+        La colonne £ n'apparaît que si l'automate est asynchrone.
+        """
+        # 1. Construction de l'alphabet de base (a, b, c...)
+        alphabet_final = [chr(ord('a') + i) for i in range(self.num_symboles)]
+        
+        # 2. Utilisation de la fonction est_asynchrone pour le mot vide
+        if self.est_asynchrone():
+            alphabet_final.append("£")
+        
+        # Cas de sécurité si l'automate est vide
+        if not alphabet_final: 
+            alphabet_final = [" "]
+
+        # 3. Préparation des données pour l'alignement
         lignes = []
-        # Largeur par défaut basée sur le nom du symbole
-        largeurs_colonnes = [len(sym) for sym in alphabet]
+        # On initialise les largeurs avec la taille des noms des symboles (min 2)
+        largeurs_cols = [max(len(sym), 2) for sym in alphabet_final]
 
         for etat in range(self.num_etats):
+            # Détermination des marqueurs Entrée (E) et Sortie (S)
             marqueur = ""
-            if etat in self.etats_initiaux: marqueur += "E "
+            if etat in self.etats_initiaux: marqueur += "E"
             if etat in self.etats_finaux: marqueur += "S"
             
-            destinations = []
-            for i, symbole in enumerate(alphabet):
-                # Si on cherche l'epsilon unifié £, on regarde aussi pour 'c'
-                sym_recherche = symbole
-                if symbole == "£" and "c" in symboles_presents:
-                    sym_recherche = "c"
-                
-                cle = (etat, sym_recherche)
+            dest_par_ligne = []
+            for i, symbole in enumerate(alphabet_final):
+                cle = (etat, symbole)
                 if cle in self.transitions:
+                    # On trie les états d'arrivée et on les joint par des virgules
                     dests_str = ",".join(str(d) for d in sorted(self.transitions[cle]))
                 else:
                     dests_str = "--"
                 
-                destinations.append(dests_str)
-                # On ajuste la largeur de la colonne si une destination est longue (ex: 1,2,5)
-                if len(dests_str) > largeurs_colonnes[i]:
-                    largeurs_colonnes[i] = len(dests_str)
+                dest_par_ligne.append(dests_str)
+                # Mise à jour de la largeur maximale pour cette colonne
+                if len(dests_str) > largeurs_cols[i]:
+                    largeurs_cols[i] = len(dests_str)
             
-            lignes.append((marqueur.strip(), str(etat), destinations))
+            lignes.append((marqueur, str(etat), dest_par_ligne))
 
-        # 3. Calcul de la largeur de la colonne de gauche (Marqueurs + Numéro)
+        # 4. Calcul de la largeur de la colonne d'indice (ex: "E S  12")
         largeur_num_etat = max(len(l[1]) for l in lignes) if lignes else 1
-        largeur_col_gauche = 4 + largeur_num_etat # Place pour "E S "
+        largeur_col_gauche = 5 + largeur_num_etat
 
-        # 4. Affichage final
+        # 5. Affichage final sur le terminal
         print("\n" + "="*20 + " TABLEAU DE TRANSITION " + "="*20)
         
         # En-tête
         en_tete = f"{'':<{largeur_col_gauche}} | "
-        for i, symbole in enumerate(alphabet):
-            en_tete += f"{symbole:^{largeurs_colonnes[i]}} | "
-        
+        for i, sym in enumerate(alphabet_final):
+            en_tete += f"{sym:^{largeurs_cols[i]}} | "
         print(en_tete)
         print("-" * len(en_tete))
 
-        # Contenu des états
-        for marqueur, num_etat, cols in lignes:
-            # Alignement : Marqueur à gauche, numéro à droite
-            label_etat = f"{marqueur:<3} {num_etat:>{largeur_num_etat}}"
-            ligne_str = f"{label_etat} | "
-            
-            for i, dest in enumerate(cols):
-                ligne_str += f"{dest:^{largeurs_colonnes[i]}} | "
-            
+        # Lignes d'états
+        for m, n, cols in lignes:
+            # Formatage du label "E S  0"
+            label = f"{m:<3} {n:>{largeur_num_etat}}"
+            ligne_str = f"{label} | "
+            for i, d in enumerate(cols):
+                ligne_str += f"{d:^{largeurs_cols[i]}} | "
             print(ligne_str)
-        
+            
         print("=" * len(en_tete) + "\n")
 
     
